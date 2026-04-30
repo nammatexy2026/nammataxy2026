@@ -11,6 +11,7 @@ import Customers from './pages/taxi/Customers';
 import BasePrices from './pages/taxi/BasePrices';
 import VehicleAttachments from './pages/taxi/VehicleAttachments';
 import Drivers from './pages/taxi/Drivers';
+import SettlementManagement from './pages/SettlementManagement';
 import Attendance from './pages/taxi/Attendance';
 import Staff from './pages/taxi/Staff';
 import StaffReports from './pages/taxi/StaffReports';
@@ -18,6 +19,9 @@ import Keywords from './pages/taxi/Keywords';
 import Business from './pages/taxi/Business';
 import EmailTemplates from './pages/taxi/EmailTemplates';
 import Settings from './pages/taxi/Settings';
+import FinanceReconciliation from './pages/FinanceReconciliation';
+import SupportManagement from './pages/SupportManagement';
+import AlertManagement from './pages/AlertManagement';
 
 // Additional Pages
 import CouponListPage from './pages/CouponListPage';
@@ -41,6 +45,10 @@ function AdminModule() {
                 <Route path="prices/*" element={<BasePrices />} />
                 <Route path="vehicle-attachments/*" element={<VehicleAttachments />} />
                 <Route path="drivers/*" element={<Drivers />} />
+                <Route path="settlements" element={<SettlementManagement />} />
+                <Route path="reconciliation" element={<FinanceReconciliation />} />
+                <Route path="support" element={<SupportManagement />} />
+                <Route path="alerts" element={<AlertManagement />} />
                 <Route path="attendance/*" element={<Attendance />} />
                 <Route path="staff/*" element={<Staff />} />
                 <Route path="staff-reports/*" element={<StaffReports />} />

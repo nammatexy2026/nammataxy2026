@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import {
     LayoutDashboard,
     Users,
@@ -27,7 +28,8 @@ import {
     Mail,
     Search,
     ChevronRight,
-    History
+    History,
+    Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -63,6 +65,8 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
         ${isActive(path) ? 'text-[#F7DC9D]' : 'text-[#757575] hover:text-white'}
     `;
 
+    const { logout } = useAuth();
+    
     return (
         <motion.div 
             animate={{ width: isCollapsed ? 80 : 240 }}
@@ -189,6 +193,27 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
                         <div className="flex items-center gap-4">
                             <UserCheck size={18} />
                             {!isCollapsed && <span className="text-[13.5px] font-medium tracking-tight">Drivers</span>}
+                        </div>
+                    </Link>
+
+                    <Link to="/admin/settlements" className={navItemClasses('/admin/settlements')}>
+                        <div className="flex items-center gap-4">
+                            <CreditCard size={18} />
+                            {!isCollapsed && <span className="text-[13.5px] font-medium tracking-tight">Settlements</span>}
+                        </div>
+                    </Link>
+
+                    <Link to="/admin/reconciliation" className={navItemClasses('/admin/reconciliation')}>
+                        <div className="flex items-center gap-4">
+                            <History size={18} />
+                            {!isCollapsed && <span className="text-[13.5px] font-medium tracking-tight">Finance Recon</span>}
+                        </div>
+                    </Link>
+
+                    <Link to="/admin/support" className={navItemClasses('/admin/support')}>
+                        <div className="flex items-center gap-4">
+                            <Shield size={18} />
+                            {!isCollapsed && <span className="text-[13.5px] font-medium tracking-tight">Support</span>}
                         </div>
                     </Link>
 
@@ -332,8 +357,11 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
             {/* Logout - Integrated */}
             <div className="px-6 py-6 border-t border-white/5">
-                <button className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} text-[#9E9E9E] hover:text-white transition-all group`}>
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#F7DC9D] group-hover:text-black transition-all">
+                <button 
+                    onClick={logout}
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} text-[#9E9E9E] hover:text-white transition-all group w-full`}
+                >
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#F7DC9D] group-hover:text-black transition-all shrink-0">
                         <LogOut size={16} />
                     </div>
                     {!isCollapsed && <span className="text-[13.5px] font-semibold">Log Out</span>}

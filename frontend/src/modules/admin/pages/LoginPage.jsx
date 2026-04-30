@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-// import logo from '../../user/assets/logo_final.jpg';
+import api from '../../../lib/api';
 
 const LoginPage = () => {
     const { login } = useAuth();
@@ -20,16 +20,19 @@ const LoginPage = () => {
         setError('');
         setIsSubmitting(true);
 
-        // Simulate a slight delay for "Processing" feel
-        setTimeout(() => {
-            const res = login(email, password);
-            if (res.success) {
+        try {
+            const res = await api.post('/auth/admin/login', { email, password });
+            if (res && res.data) {
+                login(res.data.user, res.data.token);
                 navigate('/admin/dashboard');
             } else {
-                setError(res.message || 'Invalid administrative credentials');
-                setIsSubmitting(false);
+                setError(data.message || 'Invalid administrative credentials');
             }
-        }, 1000);
+        } catch (err) {
+            setError(err.message || 'Network error occurred');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

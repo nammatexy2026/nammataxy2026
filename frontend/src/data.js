@@ -13,3 +13,9 @@ export const services = [
     { id: 'tours', name: 'Tours Packages', img: serviceTours },
     { id: 'outstation', name: 'Outstation', img: serviceOutstation }
 ];
+
+export const imageMap = {
+    'service_airport-removebg-preview - Copy.png': serviceAirport,
+    'service_tours-removebg-preview - Copy.png': serviceTours,
+    'service_outstation_-_Copy-removebg-preview - Copy.png': serviceOutstation,
+};

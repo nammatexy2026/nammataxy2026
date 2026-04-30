@@ -1,26 +1,44 @@
-import React, { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, ListFilter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronLeft, ChevronRight, ListFilter, User, Clock, Calendar, Loader2 } from 'lucide-react';
+import api from '../../../../lib/api';
 
 const Attendance = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    
-    const attendanceData = [
-        { id: 1, employee: 'Vikash Yadav', checkIn: '11/12/2025 07:08:01', checkOut: '', workHours: '' },
-        { id: 2, employee: 'Vikash Yadav', checkIn: '28/10/2025 04:37:29', checkOut: '28/10/2025 04:37:42', workHours: '00:00:13' },
-        { id: 3, employee: 'Vikash Yadav', checkIn: '25/10/2025 11:54:48', checkOut: '', workHours: '' },
-        { id: 4, employee: 'Vikash Yadav', checkIn: '11/10/2025 03:27:27', checkOut: '11/10/2025 03:27:33', workHours: '00:00:06' },
-        { id: 5, employee: 'Vikash Yadav', checkIn: '06/10/2025 11:34:19', checkOut: '', workHours: '' },
-        { id: 6, employee: 'Vikash Yadav', checkIn: '01/10/2025 02:12:24', checkOut: '', workHours: '' },
-        { id: 7, employee: 'Vikash Yadav', checkIn: '30/09/2025 07:43:09', checkOut: '', workHours: '' },
-        { id: 8, employee: 'Vikash Yadav', checkIn: '21/09/2025 05:54:27', checkOut: '21/09/2025 05:54:52', workHours: '00:00:25' },
-        { id: 9, employee: 'Vikash Yadav', checkIn: '12/03/2025 02:52:04', checkOut: '12/03/2025 02:53:03', workHours: '00:00:59' },
-        { id: 10, employee: 'Vikash Yadav', checkIn: '27/02/2025 05:12:03', checkOut: '27/02/2025 05:12:10', workHours: '00:00:07' },
-        { id: 11, employee: 'Vikash Yadav', checkIn: '23/02/2025 11:35:55', checkOut: '', workHours: '' },
-        { id: 12, employee: 'Vikash Yadav', checkIn: '20/02/2025 01:30:29', checkOut: '', workHours: '' },
-    ];
+    const [attendanceData, setAttendanceData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchAttendance = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/attendance');
+            if (res && res.data) {
+                setAttendanceData(res.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch attendance:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAttendance();
+    }, []);
+
+    const filteredData = attendanceData.filter(item => 
+        item.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const formatDateTime = (dateStr) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString('en-GB', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    };
 
     return (
-        <div className="p-1 md:p-3 bg-white min-h-screen font-inter animate-in fade-in duration-500">
+        <div className="p-1 md:p-3 bg-white min-h-screen font-inter animate-in fade-in duration-500 text-left">
             <style>
                 {`
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
@@ -29,81 +47,114 @@ const Attendance = () => {
             </style>
 
             {/* Header Section */}
-            <div className="mb-6">
-                <h1 className="text-[22px] font-black text-black uppercase tracking-tight font-roboto">ATTENDANCE</h1>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-[22px] font-black text-black uppercase tracking-tight font-roboto">ATTENDANCE LOGS</h1>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Real-time workforce duty tracking</p>
+                </div>
+                <button 
+                    onClick={fetchAttendance}
+                    className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded-none font-bold text-[11px] uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-md active:scale-95"
+                >
+                    Refresh Logs
+                </button>
             </div>
 
-            {/* Controls Section - Production Style */}
-            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-[13px] text-gray-600">
-                    Show 
-                    <select className="px-2 py-1 border border-gray-300 rounded-none focus:outline-none bg-white">
-                        <option>10</option>
-                        <option>25</option>
-                        <option selected>50</option>
-                        <option>100</option>
-                    </select>
-                    entries
+            {/* Controls Section */}
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Search Employee:</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input 
+                            type="text" 
+                            className="pl-9 pr-4 py-2 border border-black/10 rounded-none focus:outline-none focus:border-black text-[13px] bg-gray-50/50 min-w-[250px] transition-colors"
+                            placeholder="Type name .."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                    <label className="text-[13px] text-gray-600">Search:</label>
-                    <input 
-                        type="text" 
-                        className="px-2 py-1 border border-gray-300 rounded-none focus:outline-none focus:border-gray-500 text-[13px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="text-[11px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 border border-emerald-100 rounded-lg">
+                    System Time: {new Date().toLocaleTimeString()}
                 </div>
             </div>
 
-            {/* Attendance Table - High Density & Production Parity */}
-            <div className="border border-gray-200 rounded-none overflow-hidden overflow-x-auto shadow-sm">
-                <table className="w-full border-collapse min-w-[800px]">
+            {/* Attendance Table */}
+            <div className="border border-gray-200 rounded-none overflow-hidden overflow-x-auto shadow-sm bg-white">
+                <table className="w-full border-collapse min-w-[900px]">
                     <thead>
-                        <tr className="bg-white border-b border-gray-200">
-                            <th className="px-4 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[250px]">
-                                <div className="flex items-center gap-1">Employee <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-4 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100">
-                                <div className="flex items-center gap-1">Check In <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-4 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100">
-                                <div className="flex items-center gap-1">Check out <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-4 py-3 text-left text-[13px] font-bold text-black w-[150px]">
-                                <div className="flex items-center gap-1">Work hours <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
+                        <tr className="bg-[#FDFDFD] border-b border-gray-200">
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Employee Identity</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Duty Check-In</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Duty Check-Out</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest">Work Duration</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {attendanceData.map((item, index) => (
-                            <tr key={item.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-[#F9F9F9]'} hover:bg-gray-50 transition-colors`}>
-                                <td className="px-4 py-3 text-[13px] text-black border-r border-gray-100 font-medium">{item.employee}</td>
-                                <td className="px-4 py-3 text-[13px] text-gray-700 border-r border-gray-100">{item.checkIn}</td>
-                                <td className="px-4 py-3 text-[13px] text-gray-700 border-r border-gray-100">{item.checkOut || '-'}</td>
-                                <td className="px-4 py-3 text-[13px] text-black font-medium">{item.workHours || '-'}</td>
+                    <tbody className="divide-y divide-gray-200">
+                        {loading ? (
+                            <tr>
+                                <td colSpan="4" className="px-4 py-20 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <Loader2 className="animate-spin text-black" size={32} />
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fetching Workforce Logs...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : filteredData.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="px-4 py-20 text-center text-gray-400 italic font-medium">No attendance records found.</td>
+                            </tr>
+                        ) : filteredData.map((item, index) => (
+                            <tr key={item._id} className="hover:bg-gray-50/80 transition-colors group">
+                                <td className="px-4 py-4 border-r border-gray-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center text-white text-[11px] font-black uppercase tracking-tighter shrink-0">
+                                            {item.userId?.name?.charAt(0) || 'U'}
+                                        </div>
+                                        <div>
+                                            <p className="text-[13px] font-black text-black uppercase tracking-tight">{item.userId?.name || 'Unknown'}</p>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-[9px] font-bold text-[#F7DC9D] bg-black px-1.5 py-0.5 rounded-sm uppercase tracking-widest">
+                                                    {item.userModel}
+                                                </span>
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase">ID: {item.userId?._id?.substring(20)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4 text-[12px] font-medium text-gray-700 border-r border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar size={14} className="text-gray-300" />
+                                        {formatDateTime(item.checkIn)}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4 text-[12px] font-medium text-gray-700 border-r border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={14} className="text-gray-300" />
+                                        {formatDateTime(item.checkOut)}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className={`text-[12px] font-black uppercase tracking-widest ${item.checkOut ? 'text-black' : 'text-emerald-500 animate-pulse'}`}>
+                                            {item.workHours || 'ON DUTY'}
+                                        </span>
+                                        {item.checkOut && (
+                                            <div className="h-1.5 w-1.5 bg-gray-200 rounded-full" />
+                                        )}
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
 
-            {/* Pagination / Footer Info */}
-            <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 px-2">
-                <div className="text-[12px] text-gray-500 font-medium">
-                    Showing 1 to 12 of 29 entries
-                </div>
-                <div className="flex items-center border border-gray-200 rounded-none overflow-hidden">
-                    <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50 border-r border-gray-200 transition-colors text-[13px]">Prev</button>
-                    <button className="px-4 py-1.5 bg-[#007BFF] text-white text-[13px] border-r border-gray-200 font-bold">1</button>
-                    <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50 transition-colors text-[13px]">Next</button>
-                </div>
-            </div>
-
             {/* Footer Copyright */}
-            <div className="mt-8 text-center text-[12px] text-gray-400 py-4 border-t border-gray-100">
-                Copyright © 2021 NAMMA TAXI All right reserved
+            <div className="mt-12 text-center text-[10px] font-bold text-gray-400 py-6 border-t border-gray-100 uppercase tracking-[0.4em]">
+                NAMMA TAXI • WORKFORCE INFRASTRUCTURE
             </div>
         </div>
     );

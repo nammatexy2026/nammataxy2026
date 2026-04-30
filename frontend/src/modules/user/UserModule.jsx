@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
-import { cabs } from '../../data'
+import { imageMap } from '../../data'
+import api from '../../lib/api'
 
 // Components
 import Home from './pages/Home'
@@ -13,6 +14,8 @@ import Bookings from './pages/Bookings'
 import BottomNav from './components/BottomNav'
 import EditProfile from './pages/EditProfile'
 import ManageAddress from './pages/ManageAddress'
+import Notifications from './pages/Notifications'
+import CustomerProtectedRoute from './components/CustomerProtectedRoute'
 import { Terms, Privacy, Support } from './pages/StaticPages'
 
 function UserModule() {
@@ -37,12 +40,41 @@ function UserModule() {
   const [userAddress, setUserAddress] = useState('')
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
 
+  // API States
+  const [quoteId, setQuoteId] = useState(null)
+  const [cabResults, setCabResults] = useState([])
+  const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false)
+
   useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => setIsRazorpayLoaded(true);
+    script.onerror = () => setIsRazorpayLoaded(false);
+    document.body.appendChild(script);
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // In a real app, we would reverse-geocode this
-          setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)} (Current Location)`);
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Reverse geocode using Google Maps API
+            // Note: Using the key provided in .env (exposed via Vite)
+            const apiKey = 'AIzaSyCcpTFWJP9pT_LcliCyFb_LbIo4xRxBloE';
+            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+            const data = await response.json();
+            
+            if (data.status === 'OK' && data.results && data.results[0]) {
+              // Set the formatted address from Google
+              setLocation(data.results[0].formatted_address);
+            } else {
+              setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)} (Current Location)`);
+            }
+          } catch (err) {
+            console.error("Google Reverse geocoding error:", err);
+            setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)} (Current Location)`);
+          }
         },
         (error) => {
           console.error("Location error:", error);
@@ -54,16 +86,171 @@ function UserModule() {
     }
   }, [])
 
-  const handleSearch = () => {
-    navigate('/user/results')
+  const handleSearch = async () => {
+    try {
+      // Validation for distance-based services
+      if (activeService === 'airport' || activeService === 'outstation') {
+        if (!location || location === 'Fetching live location...') {
+          alert('Please enter a pickup location');
+          return;
+        }
+        if (!dropLocation || dropLocation.trim() === '') {
+          alert('Please enter a destination');
+          return;
+        }
+      }
+
+      // setIsLoadingResults(true)
+      // setApiError('')
+      
+      const tripMode = activeService === 'airport' ? airportMode : 
+                       activeService === 'outstation' ? outstationMode : 
+                       (selectedPackage || '1day_450km_arunachalam')
+
+      const quoteData = {
+        serviceType: activeService,
+        tripMode,
+        pickupLocation: location,
+        dropLocation: dropLocation, // Real value only
+        pickupDate: pickupDate || new Date().toISOString().split('T')[0],
+        pickupTime: pickupTime || '10:00',
+        returnDate,
+        phoneNumber
+      }
+
+      const res = await api.post('/quotes', quoteData)
+      
+      if (res && res.data) {
+        setQuoteId(res.data._id)
+        /* setQuoteMetadata({
+          distanceKm: res.data.distanceKm,
+          estimatedDuration: res.data.estimatedDuration,
+          quoteSource: res.data.quoteSource
+        }) */
+        
+        // Map backend response to the shape CabResults expects
+        const mappedCabs = res.data.availableCategories.map(cat => ({
+          id: cat.vehicleCategoryId,
+          name: cat.categoryName,
+          brand: cat.seats > 4 ? 'SUV' : 'Sedan', // simple fallback
+          seats: cat.seats,
+          luggage: cat.luggage,
+          ac: cat.ac,
+          price: `₹${cat.computedFare}`,
+          img: imageMap[cat.image] || imageMap['service_airport-removebg-preview - Copy.png'],
+          desc: `${cat.seats} Seater, ${cat.ac ? 'AC' : 'Non-AC'} | Base fare: ₹${cat.breakdown.baseFare}`,
+          distanceKm: res.data.distanceKm,
+          estimatedDuration: res.data.estimatedDuration
+        }))
+        
+        setCabResults(mappedCabs)
+        navigate('/user/results')
+      }
+    } catch (err) {
+      console.error('Failed to fetch quotes:', err)
+      // setApiError(err.message || 'Failed to get quotes. Please try again.')
+      alert(err.message || 'Failed to get quotes.')
+    } finally {
+      // setIsLoadingResults(false)
+    }
   }
 
-  const handleBookClick = () => {
+  const handleBookClick = async () => {
+    if (!window.Razorpay || !isRazorpayLoaded) {
+      alert('Payment gateway is still loading or unavailable. Please try again in a moment.');
+      return;
+    }
+
     setIsCheckingAvailability(true)
-    setTimeout(() => {
-        setIsCheckingAvailability(false)
-        navigate('/user/success')
-    }, 2000)
+    
+    try {
+      // 1. Create Booking
+      const bookingData = {
+        quoteId,
+        categoryId: selectedCab.id,
+        customerInfo: {
+          name: userName || 'Guest User',
+          phone: phoneNumber || '9999999999',
+          email: userEmail || 'guest@example.com',
+          address: userAddress || 'Bengaluru'
+        }
+      }
+
+      const bookingRes = await api.post('/bookings', bookingData)
+      if (!bookingRes || !bookingRes.data) throw new Error('Failed to create booking');
+      
+      const bookingId = bookingRes.data._id;
+      const bookingRef = bookingRes.data.bookingRef;
+
+      // 2. Initiate Payment
+      // Pass phone for guest ownership verification on backend
+      const paymentRes = await api.post('/payments/initiate', { bookingId, phone: phoneNumber });
+      if (!paymentRes || !paymentRes.data) throw new Error('Failed to initiate payment');
+      
+      const { orderId, amount, currency, key } = paymentRes.data;
+
+      // 3. Open Razorpay Checkout
+      const options = {
+        key: key,
+        amount: amount,
+        currency: currency,
+        name: 'Namma Taxi',
+        description: `Booking ${bookingRef}`,
+        order_id: orderId,
+        handler: async (response) => {
+          try {
+            // 4. Verify Payment on Backend
+            const verifyRes = await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              bookingId
+            });
+
+            if (verifyRes && verifyRes.data) {
+              setSelectedCab({
+                ...selectedCab,
+                bookingRef: bookingRef
+              })
+              navigate('/user/success')
+            }
+          } catch (err) {
+            console.error('Payment verification failed:', err);
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: userName,
+          email: userEmail,
+          contact: phoneNumber
+        },
+        theme: {
+          color: '#F7DC9D'
+        },
+        modal: {
+          ondismiss: () => {
+            setIsCheckingAvailability(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', async (response) => {
+        console.error('Payment failed:', response.error);
+        await api.post('/payments/failure', {
+          orderId: orderId,
+          error: response.error
+        });
+        alert(`Payment failed: ${response.error.description}`);
+        setIsCheckingAvailability(false);
+      });
+      rzp.open();
+
+    } catch (err) {
+      console.error('Failed to complete booking process:', err)
+      alert(err.message || 'Failed to complete booking. Please try again.')
+      setIsCheckingAvailability(false)
+    }
   }
 
   return (
@@ -97,7 +284,7 @@ function UserModule() {
         
         <Route path="results" element={
           <CabResults 
-            cabs={cabs} 
+            cabs={cabResults} 
             setView={(view) => navigate(view === 'home' ? '/user' : `/user/${view}`)} 
             setSelectedCab={setSelectedCab} 
           />
@@ -133,14 +320,15 @@ function UserModule() {
         <Route path="success" element={
           <Success 
             selectedCab={selectedCab} 
-            setView={(view) => navigate('/user')} 
+            setView={() => navigate('/user')} 
           />
         } />
 
-        <Route path="bookings" element={<Bookings />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="edit-profile" element={<EditProfile />} />
-        <Route path="manage-address" element={<ManageAddress />} />
+        <Route path="bookings" element={<CustomerProtectedRoute><Bookings /></CustomerProtectedRoute>} />
+        <Route path="profile" element={<CustomerProtectedRoute><Profile /></CustomerProtectedRoute>} />
+        <Route path="edit-profile" element={<CustomerProtectedRoute><EditProfile /></CustomerProtectedRoute>} />
+        <Route path="manage-address" element={<CustomerProtectedRoute><ManageAddress /></CustomerProtectedRoute>} />
+        <Route path="notifications" element={<CustomerProtectedRoute><Notifications /></CustomerProtectedRoute>} />
         <Route path="terms" element={<Terms />} />
         <Route path="privacy" element={<Privacy />} />
         <Route path="support" element={<Support />} />

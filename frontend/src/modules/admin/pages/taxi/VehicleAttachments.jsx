@@ -1,19 +1,38 @@
-import React, { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, ListFilter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronLeft, ChevronRight, ListFilter, Car, User, MapPin, Loader2, ShieldCheck } from 'lucide-react';
+import api from '../../../../lib/api';
 
 const VehicleAttachments = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [attachments, setAttachments] = useState([]);
+    const [loading, setLoading] = useState(true);
     
-    const attachmentsData = [
-        { id: 1, type: 'SEDAN', name: 'Muhammed Ashiq Kijekkar', email: 'mashiksadath@gmail.com', phone: '8714525286', address: 'Sri Suryodhaya Garden, Cheemasandra, Bengaluru, Karnataka, 560049' },
-        { id: 2, type: 'SEDAN', name: 'TG GOPINATH', email: 'aradhyavid25@gmail.com', phone: '8546886607', address: 'RR nagar Bengaluru 560098' },
-        { id: 3, type: 'Toyota Innova Crysta', name: 'Harish H V', email: 'hariklr92@gmail.com', phone: '9886167288', address: 'Aralimarada Hosahalli (v)Nayakarahalli (po) Kolar (T&D)' },
-        { id: 4, type: 'SEDAN', name: 'Chethan Kumar VJ', email: 'ckumarvj@gmail.com', phone: '8123273539', address: '65 is 1st cross 1st main road H M Nayak Road Jai Maruti Nagar NANDIN' },
-        { id: 5, type: 'Toyota Innova Crysta', name: 'VENKATESWAR RAO KARUMURI', email: 'venkat_kk2@yahoo.co.in', phone: '7532973076', address: 'CORONA GRACIEUX, TOWER C, flat 204' },
-    ];
+    const fetchAttachments = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/drivers');
+            if (res && res.data) {
+                setAttachments(res.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch vehicle attachments:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAttachments();
+    }, []);
+
+    const filteredAttachments = attachments.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.phone.includes(searchTerm) ||
+        (item.vehicleNumber && item.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     return (
-        <div className="p-1 md:p-3 bg-white min-h-screen font-inter animate-in fade-in duration-500">
+        <div className="p-1 md:p-3 bg-white min-h-screen font-inter animate-in fade-in duration-500 text-left">
             <style>
                 {`
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
@@ -22,89 +41,132 @@ const VehicleAttachments = () => {
             </style>
 
             {/* Header Section */}
-            <div className="mb-6">
-                <h1 className="text-[22px] font-black text-black uppercase tracking-tight font-roboto">VEHICLE ATTACHMENTS</h1>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-[22px] font-black text-black uppercase tracking-tight font-roboto">VEHICLE ATTACHMENTS</h1>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Fleet Onboarding & Verification Hub</p>
+                </div>
+                <div className="flex items-center gap-4 bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 shadow-sm">
+                    <div className="text-right">
+                        <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Active Fleet</p>
+                        <p className="text-xl font-black text-emerald-700">{loading ? '...' : attachments.length}</p>
+                    </div>
+                    <div className="w-px h-8 bg-emerald-200" />
+                    <Car className="text-emerald-600" size={24} />
+                </div>
             </div>
 
-            {/* Controls Section - Production Style */}
-            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-[13px] text-gray-600">
-                    Show 
-                    <select className="px-2 py-1 border border-gray-300 rounded-none focus:outline-none bg-white">
-                        <option>10</option>
-                        <option>25</option>
-                        <option selected>50</option>
-                        <option>100</option>
-                    </select>
-                    entries
+            {/* Controls Section */}
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input 
+                            type="text" 
+                            placeholder="Search Driver or Plate .."
+                            className="pl-9 pr-4 py-2 border border-black/10 rounded-none text-[13px] focus:outline-none focus:border-black transition-colors placeholder:text-gray-400 bg-gray-50/50 min-w-[280px]"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <button className="px-6 py-2 bg-black hover:bg-zinc-800 text-white font-bold text-[13px] rounded-none transition-all uppercase tracking-tight shadow-md">
+                        Filter Fleet
+                    </button>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                    <label className="text-[13px] text-gray-600">Search:</label>
-                    <input 
-                        type="text" 
-                        className="px-2 py-1 border border-gray-300 rounded-none focus:outline-none focus:border-gray-500 text-[13px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    Displaying Live Metadata From Infrastructure
                 </div>
             </div>
 
-            {/* Table Section - High Density & Production Colors */}
-            <div className="border border-gray-200 rounded-none overflow-hidden overflow-x-auto">
-                <table className="w-full border-collapse min-w-[800px]">
+            {/* Table Section */}
+            <div className="border border-gray-200 rounded-none overflow-hidden overflow-x-auto bg-white shadow-sm">
+                <table className="w-full border-collapse min-w-[1000px]">
                     <thead>
-                        <tr className="bg-white border-b border-gray-200">
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[50px]">
-                                <div className="flex items-center gap-1"># <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[140px]">
-                                <div className="flex items-center gap-1">Type <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[200px]">
-                                <div className="flex items-center gap-1">Name <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[200px]">
-                                <div className="flex items-center gap-1">Email <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black border-r border-gray-100 w-[120px]">
-                                <div className="flex items-center gap-1">Phone <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
-                            <th className="px-3 py-3 text-left text-[13px] font-bold text-black">
-                                <div className="flex items-center gap-1">Address <ListFilter size={12} className="text-gray-300" /></div>
-                            </th>
+                        <tr className="bg-[#FDFDFD] border-b border-gray-200">
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200 w-[60px]">Sr</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Vehicle Specification</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Partner Details</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">License & Auth</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest border-r border-gray-200">Status</th>
+                            <th className="px-4 py-4 text-left text-[11px] font-black text-black uppercase tracking-widest">Onboarding</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {attachmentsData.map((item, index) => (
-                            <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
-                                <td className="px-3 py-4 text-[13px] text-gray-700 border-r border-gray-100">{item.id}</td>
-                                <td className="px-3 py-4 text-[12px] font-medium text-black border-r border-gray-100 uppercase">{item.type}</td>
-                                <td className="px-3 py-4 text-[13px] text-black border-r border-gray-100">{item.name}</td>
-                                <td className="px-3 py-4 text-[12px] text-gray-600 border-r border-gray-100">{item.email}</td>
-                                <td className="px-3 py-4 text-[13px] text-gray-700 border-r border-gray-100">{item.phone}</td>
-                                <td className="px-3 py-4 text-[12px] text-gray-600 leading-tight">{item.address}</td>
+                    <tbody className="divide-y divide-gray-200">
+                        {loading ? (
+                            <tr>
+                                <td colSpan="6" className="px-4 py-20 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <Loader2 className="animate-spin text-black" size={32} />
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Polling Fleet Telemetry...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : filteredAttachments.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="px-4 py-20 text-center text-gray-400 italic font-medium">No attached vehicles found.</td>
+                            </tr>
+                        ) : filteredAttachments.map((item, index) => (
+                            <tr key={item._id} className="hover:bg-gray-50/80 transition-colors group">
+                                <td className="px-4 py-4 text-[12px] font-black text-gray-400 border-r border-gray-200">{index + 1}</td>
+                                <td className="px-4 py-4 border-r border-gray-200">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-[#F7DC9D]/20 transition-colors shrink-0 border border-black/5">
+                                            <Car size={24} className="text-black group-hover:text-amber-600 transition-colors" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-black text-black uppercase tracking-tight">
+                                                {item.vehicleCategoryId?.name || 'GENERIC FLEET'}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.15em] mt-0.5">
+                                                {item.vehicleNumber || 'NO_PLATE'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-[10px] font-black shrink-0">
+                                            {item.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-black text-black uppercase tracking-tight">{item.name}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.phone}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck size={14} className="text-emerald-500" />
+                                        <span className="text-[11px] font-black text-gray-700 uppercase tracking-tighter">
+                                            {item.licenseNumber || 'PENDING_VERIFICATION'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[8px] font-black text-gray-400 uppercase mt-1 tracking-widest">RTO REGISTERED</p>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-200">
+                                    <span className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest
+                                        ${item.isActive ? 'bg-black text-[#F7DC9D]' : 'bg-red-500 text-white'}`}
+                                    >
+                                        {item.isActive ? 'Active' : 'Suspended'}
+                                    </span>
+                                    <p className="text-[8px] font-black text-gray-400 uppercase mt-1">Status: {item.status}</p>
+                                </td>
+                                <td className="px-4 py-4">
+                                    <p className="text-[11px] font-black text-gray-500 uppercase">
+                                        {new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">Fleet Onboarded</p>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
 
-            {/* Pagination / Footer Style Section */}
-            <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 px-2">
-                <div className="text-[12px] text-gray-500 font-medium">
-                    Showing 1 to 5 of 5 entries
-                </div>
-                <div className="flex items-center border border-gray-200 rounded-none overflow-hidden">
-                    <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50 border-r border-gray-200 transition-colors text-[13px]">Previous</button>
-                    <button className="px-4 py-1.5 bg-gray-50 text-gray-400 text-[13px] border-r border-gray-200 font-medium">1</button>
-                    <button className="px-3 py-1.5 text-gray-400 hover:bg-gray-50 transition-colors text-[13px]">Next</button>
-                </div>
-            </div>
-
             {/* Footer Copyright */}
-            <div className="mt-8 text-center text-[12px] text-gray-400 py-4 border-t border-gray-100">
-                Copyright © 2021 NAMMA TAXI All right reserved
+            <div className="mt-12 text-center text-[10px] font-bold text-gray-400 py-6 border-t border-gray-100 uppercase tracking-[0.4em]">
+                NAMMA TAXI • FLEET ASSET MANAGEMENT
             </div>
         </div>
     );

@@ -3,74 +3,72 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     Save,
-    Plus,
-    Trash2,
     Ticket,
     Calendar,
     Settings,
     ShieldCheck,
     Info,
     CheckCircle2,
-    XCircle,
-    Copy,
-    AlertCircle
+    Loader2
 } from 'lucide-react';
-import { useShop } from '../../../context/ShopContext';
-import { PRODUCTS as mockProducts } from '../../../mockData/data'; // Fallback / Helper
+import api from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import { FormSection, Input, Select, TextArea } from '../components/common/FormControls';
 
 const CouponFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { products, coupons, addCoupon, updateCoupon } = useShop();
     const isEdit = Boolean(id);
+    const [loading, setLoading] = useState(isEdit);
+    const [saving, setSaving] = useState(false);
 
-    // Hardcoded Categories for simplicty (usually from context)
-    const CATEGORIES = [
-        { id: 'nuts', name: 'Nuts' },
-        { id: 'dried-fruits', name: 'Dried Fruits' },
-        { id: 'seeds-mixes', name: 'Seeds & Mixes' },
-        { id: 'combos-packs', name: 'Combos & Packs' }
+    const SERVICES = [
+        { id: 'Outstation', name: 'Outstation' },
+        { id: 'Airport Transfer', name: 'Airport Transfer' },
+        { id: 'Local', name: 'Local Trip' }
     ];
 
-    const SUBCATEGORIES = [
-        'Almonds', 'Cashews', 'Walnuts (Akhrot)', 'Pistachios',
-        'Raisins', 'Dates', 'Dried Figs (Anjeer)',
-        'Seeds', 'Mixes', 'Daily Packs', 'Gifting'
+    const VEHICLE_CATEGORIES = [
+        'SEDAN', 'SUV 6', 'SUV 7', 'HATCHBACK', 'Tempo Traveller', 'Mini Bus', 'BUS 33'
     ];
 
     const [formData, setFormData] = useState({
         code: '',
-        type: 'flat',
+        type: 'fixed',
         value: '',
         minOrderValue: '',
         maxDiscount: '',
         validFrom: new Date().toISOString().split('T')[0],
         validUntil: '',
         usageLimit: '',
-        perUserLimit: 1,
-        active: true,
-        userEligibility: 'all',
+        isActive: true,
         description: '',
-        // New Fields
-        applicabilityType: 'all', // 'all', 'category', 'subcategory', 'product'
-        targetItems: [] // Array of IDs or Names
+        applicabilityType: 'all', // 'all', 'service', 'vehicle'
+        targetItems: []
     });
 
     useEffect(() => {
-        if (isEdit && coupons) {
-            const coupon = coupons.find(c => c.id === id);
-            if (coupon) setFormData({
-                ...coupon,
-                value: coupon.amount || coupon.value || '', // Handle both structures
-                minOrderValue: coupon.minOrder || coupon.minOrderValue || '',
-                description: coupon.desc || coupon.description || '',
-                applicabilityType: coupon.applicabilityType || 'all',
-                targetItems: coupon.targetItems || []
-            });
+        if (isEdit) {
+            const fetchCoupon = async () => {
+                try {
+                    const res = await api.get(`/coupons`);
+                    const coupon = res.data.find(c => c._id === id);
+                    if (coupon) {
+                        setFormData({
+                            ...coupon,
+                            validFrom: new Date(coupon.validFrom).toISOString().split('T')[0],
+                            validUntil: new Date(coupon.validUntil).toISOString().split('T')[0],
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch coupon:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchCoupon();
         }
-    }, [id, isEdit, coupons]);
+    }, [id, isEdit]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -91,42 +89,40 @@ const CouponFormPage = () => {
         });
     };
 
-    const handleSave = (e) => {
-        e.preventDefault();
-
-        const payload = {
-            ...formData,
-            // Map to standard structure
-            amount: Number(formData.value),
-            minOrder: Number(formData.minOrderValue),
-            desc: formData.description,
-            // Keep original fields too for compatibility if needed, but standardize on above
-            value: Number(formData.value),
-            minOrderValue: Number(formData.minOrderValue),
-            description: formData.description,
-
-            usageCount: isEdit ? formData.usageCount : 0,
-            maxDiscount: Number(formData.maxDiscount) || null,
-            usageLimit: Number(formData.usageLimit) || 1000,
-            perUserLimit: Number(formData.perUserLimit) || 1
-        };
-
-        if (isEdit) {
-            updateCoupon(id, payload);
-        } else {
-            addCoupon(payload);
+    const handleSave = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            setSaving(true);
+            if (isEdit) {
+                await api.patch(`/coupons/${id}`, formData);
+            } else {
+                await api.post('/coupons', formData);
+            }
+            navigate('/admin/coupons');
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to save coupon');
+        } finally {
+            setSaving(false);
         }
-        navigate('/admin/coupons');
     };
 
     const handleSaveAction = {
-        label: isEdit ? 'Update Coupon' : 'Deploy Coupon',
-        icon: <Save size={16} />,
+        label: saving ? 'Saving...' : (isEdit ? 'Update Coupon' : 'Deploy Coupon'),
+        icon: saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />,
         onClick: handleSave
     };
 
+    if (loading) {
+        return (
+            <div className="h-screen flex flex-col items-center justify-center gap-3">
+                <Loader2 className="animate-spin text-black" size={40} />
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Retrieving Coupon Settings...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-10 pb-20 text-left animate-in fade-in duration-500">
+        <div className="p-1 md:p-3 bg-white min-h-screen font-inter animate-in fade-in duration-500 text-left pb-20">
             <PageHeader
                 title={isEdit ? 'Configure Coupon' : 'New Promo Campaign'}
                 subtitle={isEdit ? `Modifying settings for ${formData.code}` : 'Design a new high-conversion discount code'}
@@ -134,10 +130,8 @@ const CouponFormPage = () => {
                 action={handleSaveAction}
             />
 
-            <form className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Left: Core Logic */}
+            <form className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-10">
                 <div className="lg:col-span-8 space-y-6">
-                    {/* 1. Core Settings */}
                     <FormSection title="Core Settings" icon={<Info size={18} className="text-gray-400" />}>
                         <div className="space-y-5">
                             <div className="flex flex-col gap-1.5">
@@ -146,13 +140,14 @@ const CouponFormPage = () => {
                                     name="code"
                                     value={formData.code}
                                     onChange={handleChange}
-                                    placeholder="e.g., WELCOME50"
+                                    placeholder="e.g., TAXI50"
+                                    className="uppercase font-black"
                                 />
                                 <div className="text-right">
                                     <button
                                         type="button"
-                                        className="text-xs font-semibold text-[#3E2723] hover:underline"
-                                        onClick={() => setFormData({ ...formData, code: `SALE${Math.floor(Math.random() * 900) + 100}` })}
+                                        className="text-[10px] font-black text-black hover:underline uppercase tracking-widest"
+                                        onClick={() => setFormData({ ...formData, code: `NAMMA${Math.floor(Math.random() * 900) + 100}` })}
                                     >
                                         Auto-Generate
                                     </button>
@@ -166,9 +161,8 @@ const CouponFormPage = () => {
                                     value={formData.type}
                                     onChange={handleChange}
                                     options={[
-                                        { value: 'flat', label: 'Flat Amount (₹)' },
-                                        { value: 'percentage', label: 'Percentage (%)' },
-                                        { value: 'free_shipping', label: 'Free Shipping' }
+                                        { value: 'fixed', label: 'Flat Amount (₹)' },
+                                        { value: 'percentage', label: 'Percentage (%)' }
                                     ]}
                                 />
                                 <Input
@@ -177,7 +171,6 @@ const CouponFormPage = () => {
                                     name="value"
                                     value={formData.value}
                                     onChange={handleChange}
-                                    disabled={formData.type === 'free_shipping'}
                                     placeholder={formData.type === 'percentage' ? 'e.g., 20' : 'e.g., 500'}
                                 />
                             </div>
@@ -193,114 +186,72 @@ const CouponFormPage = () => {
                         </div>
                     </FormSection>
 
-                    {/* 2. Coupon Scope (Unified) */}
-                    <FormSection title="Coupon Scope" icon={<ShieldCheck size={18} className="text-gray-400" />}>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs text-gray-500">Define where this coupon applies.</span>
-                            {formData.targetItems.length > 0 && (
-                                <span className="text-[10px] font-bold text-white bg-[#3E2723] px-2 py-1 rounded">
-                                    {formData.targetItems.length} items selected
-                                </span>
-                            )}
-                        </div>
-
+                    <FormSection title="Applicability Scope" icon={<ShieldCheck size={18} className="text-gray-400" />}>
                         <div className="space-y-6">
-                            {/* Scope Tabs */}
-                            <div className="flex p-1 bg-gray-100 rounded-lg space-x-1 overflow-x-auto">
+                            <div className="flex p-1 bg-gray-100 rounded-none space-x-1 overflow-x-auto">
                                 {[
-                                    { id: 'all', label: 'All Orders' },
-                                    { id: 'new_user', label: 'New Users' },
-                                    { id: 'category', label: 'Category' },
-                                    { id: 'product', label: 'Product' }
-                                ].map(scope => {
-                                    const isActive = (scope.id === 'new_user' && formData.userEligibility === 'new') ||
-                                        (scope.id !== 'new_user' && formData.applicabilityType === scope.id && formData.userEligibility !== 'new');
-
-                                    return (
-                                        <button
-                                            key={scope.id}
-                                            type="button"
-                                            onClick={() => {
-                                                if (scope.id === 'new_user') {
-                                                    setFormData({ ...formData, applicabilityType: 'all', userEligibility: 'new', targetItems: [] });
-                                                } else {
-                                                    setFormData({ ...formData, applicabilityType: scope.id, userEligibility: 'all', targetItems: [] });
-                                                }
-                                            }}
-                                            className={`flex-1 py-2 px-3 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${isActive
-                                                ? 'bg-white text-[#3E2723] shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
-                                                }`}
-                                        >
-                                            {scope.label}
-                                        </button>
-                                    );
-                                })}
+                                    { id: 'all', label: 'All Services' },
+                                    { id: 'service', label: 'Service Specific' },
+                                    { id: 'vehicle', label: 'Vehicle Category' }
+                                ].map(scope => (
+                                    <button
+                                        key={scope.id}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, applicabilityType: scope.id, targetItems: [] })}
+                                        className={`flex-1 py-2 px-3 rounded-none text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${formData.applicabilityType === scope.id
+                                            ? 'bg-black text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        {scope.label}
+                                    </button>
+                                ))}
                             </div>
 
-                            {/* Scope Content */}
-                            <div className="border border-gray-200 rounded-lg overflow-hidden min-h-[150px] max-h-[400px] overflow-y-auto p-4 bg-gray-50">
-                                {formData.userEligibility === 'new' && (
+                            <div className="border border-gray-100 rounded-none overflow-hidden min-h-[150px] p-4 bg-gray-50/30">
+                                {formData.applicabilityType === 'all' && (
                                     <div className="h-full flex flex-col items-center justify-center text-center py-8 space-y-2">
-                                        <div className="w-12 h-12 bg-[#3E2723]/10 rounded-full flex items-center justify-center text-[#3E2723] mb-2">
-                                            <ShieldCheck size={24} />
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-800">New Users Only</p>
-                                        <p className="text-xs text-gray-500 max-w-xs">This coupon will only work for customers placing their first order.</p>
+                                        <CheckCircle2 size={24} className="text-emerald-500" />
+                                        <p className="text-[11px] font-black text-black uppercase tracking-tight">Global Promotion</p>
+                                        <p className="text-[10px] text-gray-400 font-bold max-w-xs uppercase tracking-wider">This coupon applies to any booking across the platform.</p>
                                     </div>
                                 )}
 
-                                {formData.applicabilityType === 'all' && formData.userEligibility !== 'new' && (
-                                    <div className="h-full flex flex-col items-center justify-center text-center py-8 space-y-2">
-                                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
-                                            <CheckCircle2 size={24} />
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-800">Entire Order</p>
-                                        <p className="text-xs text-gray-500 max-w-xs">This coupon applies to the total cart value for all users.</p>
-                                    </div>
-                                )}
-
-                                {formData.applicabilityType === 'category' && formData.userEligibility !== 'new' && (
-                                    <div className="space-y-2">
-                                        {CATEGORIES.map(cat => (
-                                            <label key={cat.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-[#3E2723]/30 transition-all">
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${formData.targetItems.includes(cat.id) ? 'bg-[#3E2723] border-[#3E2723]' : 'border-gray-300'}`}>
-                                                    {formData.targetItems.includes(cat.id) && <CheckCircle2 size={12} className="text-white" />}
+                                {formData.applicabilityType === 'service' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {SERVICES.map(service => (
+                                            <label key={service.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 cursor-pointer hover:border-black transition-all">
+                                                <div className={`w-4 h-4 border flex items-center justify-center ${formData.targetItems.includes(service.id) ? 'bg-black border-black' : 'border-gray-300'}`}>
+                                                    {formData.targetItems.includes(service.id) && <CheckCircle2 size={10} className="text-white" />}
                                                 </div>
                                                 <input
                                                     type="checkbox"
                                                     className="hidden"
-                                                    checked={formData.targetItems.includes(cat.id)}
-                                                    onChange={() => toggleTargetItem(cat.id)}
+                                                    checked={formData.targetItems.includes(service.id)}
+                                                    onChange={() => toggleTargetItem(service.id)}
                                                 />
-                                                <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                                                <span className="text-[11px] font-black text-black uppercase">{service.name}</span>
                                             </label>
                                         ))}
                                     </div>
                                 )}
 
-                                {formData.applicabilityType === 'product' && formData.userEligibility !== 'new' && (
-                                    <div className="space-y-2">
-                                        {(products || []).length > 0 ? (products || []).map(p => (
-                                            <label key={p.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-[#3E2723]/30 transition-all">
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${formData.targetItems.includes(p.id) ? 'bg-[#3E2723] border-[#3E2723]' : 'border-gray-300'}`}>
-                                                    {formData.targetItems.includes(p.id) && <CheckCircle2 size={12} className="text-white" />}
+                                {formData.applicabilityType === 'vehicle' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {VEHICLE_CATEGORIES.map(cat => (
+                                            <label key={cat} className="flex items-center gap-3 p-3 bg-white border border-gray-200 cursor-pointer hover:border-black transition-all">
+                                                <div className={`w-4 h-4 border flex items-center justify-center ${formData.targetItems.includes(cat) ? 'bg-black border-black' : 'border-gray-300'}`}>
+                                                    {formData.targetItems.includes(cat) && <CheckCircle2 size={10} className="text-white" />}
                                                 </div>
-                                                <img src={p.image} className="w-8 h-8 object-contain mix-blend-multiply" alt="" />
                                                 <input
                                                     type="checkbox"
                                                     className="hidden"
-                                                    checked={formData.targetItems.includes(p.id)}
-                                                    onChange={() => toggleTargetItem(p.id)}
+                                                    checked={formData.targetItems.includes(cat)}
+                                                    onChange={() => toggleTargetItem(cat)}
                                                 />
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-semibold text-gray-800 truncate">{p.name}</div>
-                                                    <div className="text-[10px] text-gray-500">{p.id} • {p.category}</div>
-                                                </div>
+                                                <span className="text-[11px] font-black text-black uppercase">{cat}</span>
                                             </label>
-                                        )) : (
-                                            <div className="text-center p-4 text-sm text-gray-400">No products found.</div>
-                                        )}
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -308,7 +259,6 @@ const CouponFormPage = () => {
                     </FormSection>
                 </div>
 
-                {/* Right: Validity & Targets */}
                 <div className="lg:col-span-4 space-y-6">
                     <FormSection title="Validity Period" icon={<Calendar size={18} className="text-gray-400" />}>
                         <div className="space-y-4">
@@ -329,11 +279,10 @@ const CouponFormPage = () => {
                         </div>
                     </FormSection>
 
-                    {/* Usage Restraints */}
                     <FormSection title="Limits & Caps" icon={<Settings size={18} className="text-gray-400" />}>
                         <div className="space-y-4">
                             <Input
-                                label="Min Order (₹)"
+                                label="Min Booking (₹)"
                                 type="number"
                                 name="minOrderValue"
                                 value={formData.minOrderValue}
@@ -345,36 +294,29 @@ const CouponFormPage = () => {
                                 name="maxDiscount"
                                 value={formData.maxDiscount}
                                 onChange={handleChange}
-                                disabled={formData.type === 'flat'}
+                                disabled={formData.type === 'fixed'}
+                                placeholder="Only for % coupons"
                             />
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="Total Limit"
-                                    type="number"
-                                    name="usageLimit"
-                                    value={formData.usageLimit}
-                                    onChange={handleChange}
-                                />
-                                <Input
-                                    label="User Limit"
-                                    type="number"
-                                    name="perUserLimit"
-                                    value={formData.perUserLimit}
-                                    onChange={handleChange}
-                                />
-                            </div>
+                            <Input
+                                label="Total Usage Limit"
+                                type="number"
+                                name="usageLimit"
+                                value={formData.usageLimit}
+                                onChange={handleChange}
+                                placeholder="e.g., 100"
+                            />
                         </div>
 
                         <div className="h-px bg-gray-100 my-6"></div>
 
                         <div className="flex items-center justify-between p-1">
-                            <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Coupon Active</span>
+                            <span className="text-[11px] font-black text-black uppercase tracking-widest">Active Status</span>
                             <button
                                 type="button"
-                                onClick={() => setFormData({ ...formData, active: !formData.active })}
-                                className={`w-11 h-6 rounded-full transition-all relative ${formData.active ? 'bg-[#3E2723]' : 'bg-gray-200'}`}
+                                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                                className={`w-11 h-5 rounded-full transition-all relative ${formData.isActive ? 'bg-emerald-500' : 'bg-gray-200'}`}
                             >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.active ? 'right-1' : 'left-1'}`}></div>
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${formData.isActive ? 'right-0.5' : 'left-0.5 shadow-sm'}`}></div>
                             </button>
                         </div>
                     </FormSection>

@@ -1,48 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Image as ImageIcon, Plus, Trash2, Eye, EyeOff,
     Calendar, Link as LinkIcon, Edit3,
     Bell, Send, Layout, Move, ChevronRight, X, ExternalLink,
-    MousePointer2, Sparkles, Monitor, ArrowRight
+    MousePointer2, Sparkles, Monitor, ArrowRight, Loader2
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../../lib/api';
 
 const BannerManagement = () => {
-    // Mock Banners Data matching the Home.jsx heroSlides structure
-    const [banners, setBanners] = useState([
-        {
-            id: 'BN-001',
-            badge: 'Daily Essentials',
-            title: 'Minimalist Grace Every Day',
-            description: 'Statement pieces designed for your everyday lifestyle.',
-            btnText: 'Explore Now',
-            link: '/shop',
-            image: 'https://images.unsplash.com/photo-1626784215021-2e39ccf971cd?auto=format&fit=crop&w=1600&q=80',
-            cardImage: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=200',
-            status: 'Active',
-            startDate: 'Dec 01, 2024',
-            endDate: 'Jan 31, 2025',
-            secondaryTitle: 'Exquisite Details',
-            secondaryLink: '/collections/minimalist'
-        },
-        {
-            id: 'BN-002',
-            badge: 'Wedding Specials',
-            title: 'Bridal Elegance Redefined',
-            description: 'Timeless silver pieces for your most special moments.',
-            btnText: 'Shop Bridal',
-            link: '/category/rings',
-            image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=1600&q=80',
-            cardImage: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200',
-            status: 'Active',
-            startDate: 'Dec 20, 2024',
-            endDate: 'Feb 28, 2025',
-            secondaryTitle: 'Bridal Sets',
-            secondaryLink: '/collections/bridal'
-        }
-    ]);
-
+    const [banners, setBanners] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
@@ -52,11 +21,8 @@ const BannerManagement = () => {
         title: '',
         description: '',
         btnText: 'Explore Now',
-        link: '/shop',
+        link: '/user',
         image: '',
-        cardImage: '',
-        secondaryTitle: 'Exquisite Details',
-        secondaryLink: '/shop',
         status: 'Active',
         startDate: '',
         endDate: ''
@@ -68,6 +34,24 @@ const BannerManagement = () => {
         target: 'All Users'
     });
 
+    const fetchBanners = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/banners');
+            if (res && res.data) {
+                setBanners(res.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch banners:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBanners();
+    }, []);
+
     const openAddModal = () => {
         setEditingBanner(null);
         setFormData({
@@ -75,11 +59,8 @@ const BannerManagement = () => {
             title: '',
             description: '',
             btnText: 'Explore Now',
-            link: '/shop',
+            link: '/user',
             image: '',
-            cardImage: '',
-            secondaryTitle: 'Exquisite Details',
-            secondaryLink: '/shop',
             status: 'Active',
             startDate: '',
             endDate: ''
@@ -88,34 +69,48 @@ const BannerManagement = () => {
     };
 
     const openEditModal = (banner) => {
-        setEditingBanner(banner.id);
-        setFormData(banner);
+        setEditingBanner(banner._id);
+        setFormData({
+            ...banner,
+            startDate: banner.startDate ? new Date(banner.startDate).toISOString().split('T')[0] : '',
+            endDate: banner.endDate ? new Date(banner.endDate).toISOString().split('T')[0] : ''
+        });
         setIsBannerModalOpen(true);
     };
 
-    const handleSaveBanner = (e) => {
+    const handleSaveBanner = async (e) => {
         e.preventDefault();
-        if (editingBanner) {
-            setBanners(banners.map(b => b.id === editingBanner ? { ...formData, id: b.id } : b));
-        } else {
-            const newBanner = {
-                ...formData,
-                id: `BN-${Math.floor(100 + Math.random() * 900)}`
-            };
-            setBanners([newBanner, ...banners]);
+        try {
+            if (editingBanner) {
+                await api.patch(`/banners/${editingBanner}`, formData);
+            } else {
+                await api.post('/banners', formData);
+            }
+            fetchBanners();
+            setIsBannerModalOpen(false);
+        } catch (error) {
+            alert('Failed to save banner');
         }
-        setIsBannerModalOpen(false);
     };
 
-    const toggleBannerStatus = (id) => {
-        setBanners(banners.map(b =>
-            b.id === id ? { ...b, status: b.status === 'Active' ? 'Inactive' : 'Active' } : b
-        ));
+    const toggleBannerStatus = async (banner) => {
+        try {
+            const newStatus = banner.status === 'Active' ? 'Inactive' : 'Active';
+            await api.patch(`/banners/${banner._id}`, { status: newStatus });
+            fetchBanners();
+        } catch (error) {
+            alert('Failed to update status');
+        }
     };
 
-    const deleteBanner = (id) => {
+    const deleteBanner = async (id) => {
         if (window.confirm('Delete this banner from the homepage rotation?')) {
-            setBanners(banners.filter(b => b.id !== id));
+            try {
+                await api.delete(`/banners/${id}`);
+                fetchBanners();
+            } catch (error) {
+                alert('Failed to delete banner');
+            }
         }
     };
 
@@ -152,10 +147,15 @@ const BannerManagement = () => {
                 </div>
             </div>
 
-            {/* Banners Matrix Grid - Optimized for Density (3-4 cols) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white border border-black/5">
+                    <Loader2 className="animate-spin text-black" size={32} />
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Syncing Interface Matrix...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {banners.map((banner) => (
-                    <div key={banner.id} className="bg-white rounded-none border border-black/5 shadow-sm overflow-hidden flex flex-col group hover:border-gold/30 transition-all relative">
+                    <div key={banner._id} className="bg-white rounded-none border border-black/5 shadow-sm overflow-hidden flex flex-col group hover:border-gold/30 transition-all relative">
                         {/* Visual Core Sector */}
                         <div className="relative aspect-[16/8] overflow-hidden bg-gray-50">
                             <img
@@ -183,7 +183,7 @@ const BannerManagement = () => {
                             {/* Actions Protocol Overlay */}
                             <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                 <button
-                                    onClick={() => toggleBannerStatus(banner.id)}
+                                    onClick={() => toggleBannerStatus(banner)}
                                     className="p-1 px-2 border border-white/20 bg-black/80 backdrop-blur-md text-white hover:bg-gold hover:text-black transition-all shadow-sm active:scale-95"
                                     title={banner.status === 'Active' ? 'Deactivate' : 'Activate'}
                                 >
@@ -196,7 +196,7 @@ const BannerManagement = () => {
                                     <Edit3 size={12} />
                                 </button>
                                 <button
-                                    onClick={() => deleteBanner(banner.id)}
+                                    onClick={() => deleteBanner(banner._id)}
                                     className="p-1 px-2 border border-white/20 bg-red-600/80 backdrop-blur-md text-white hover:bg-white hover:text-red-600 transition-all shadow-sm active:scale-95"
                                 >
                                     <Trash2 size={12} />
@@ -213,21 +213,16 @@ const BannerManagement = () => {
                         {/* Logic Data Component */}
                         <div className="p-3 flex-1 flex flex-col font-outfit">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">{banner.id}</span>
+                                <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">{banner._id.substring(0, 8)}</span>
                                 <div className="h-[1px] flex-1 bg-black/5"></div>
                             </div>
 
                             <div className="space-y-4 flex-1">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-0.5">
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="space-y-0.5 text-left">
                                         <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Action Protocol</p>
                                         <p className="text-[9px] font-black text-black truncate uppercase tracking-tighter">{banner.btnText}</p>
                                         <p className="text-[8px] text-gold font-bold truncate tracking-tight lowercase font-serif italic">{banner.link}</p>
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Secondary Target</p>
-                                        <p className="text-[9px] font-black text-black truncate uppercase tracking-tighter">{banner.secondaryTitle}</p>
-                                        <p className="text-[8px] text-blue-500 font-bold truncate tracking-tight lowercase font-serif italic">{banner.secondaryLink}</p>
                                     </div>
                                 </div>
                                 
@@ -245,6 +240,7 @@ const BannerManagement = () => {
                     </div>
                 ))}
             </div>
+            )}
 
             {/* Matrix Logic Modal - Refined Geometric */}
             <AnimatePresence>

@@ -14,18 +14,18 @@ const ToursForm = ({
     setView 
 }) => {
     const packages = [
-        "1 DAY TRIP ARUNACHALAM/TIRUVANNAMALAI PACKAGE 450 KM",
-        "1 DAY TRIP HOGENAKKAL FALLS PACKAGE 300 KM",
-        "1 DAY TRIP LEPAKSHI & ISHA/ADIYOGI PACKAGE 300 KM",
-        "3 DAY TRIP MYSORE & COORG/MADIKERI PACKAGE KM",
-        "4 Hours 40 KM",
-        "8 Hours 8 hrs Isha Foundation Chikkaballapura 160 km KM",
-        "8 Hours 8 hrs Nandi Hills Roundtrip 160 km KM",
-        "8 Hours 80 KM",
-        "10 Hours 10 HRS Nandi Hills + Isha Foundation 200 KM",
-        "10 Hours KOTILINGESHWARA+ 200KM PACKAGE KM",
-        "12 Hours KOTILINGESHWARA + ISHA FOUNDATION 300KM PACKAGE KM",
-        "24 Hours DAY TRIP MYSORE PACKAGE KM"
+        { value: "1day_450km_arunachalam", label: "1 DAY TRIP ARUNACHALAM/TIRUVANNAMALAI PACKAGE 450 KM" },
+        { value: "1day_300km_hogenakkal", label: "1 DAY TRIP HOGENAKKAL FALLS PACKAGE 300 KM" },
+        { value: "1day_300km_lepakshi", label: "1 DAY TRIP LEPAKSHI & ISHA/ADIYOGI PACKAGE 300 KM" },
+        { value: "3day_mysore_coorg", label: "3 DAY TRIP MYSORE & COORG/MADIKERI PACKAGE KM" },
+        { value: "4hr_40km", label: "4 Hours 40 KM" },
+        { value: "8hr_160km_isha", label: "8 Hours 8 hrs Isha Foundation Chikkaballapura 160 km KM" },
+        { value: "8hr_160km_nandi", label: "8 Hours 8 hrs Nandi Hills Roundtrip 160 km KM" },
+        { value: "8hr_80km", label: "8 Hours 80 KM" },
+        { value: "10hr_200km_nandi_isha", label: "10 Hours 10 HRS Nandi Hills + Isha Foundation 200 KM" },
+        { value: "10hr_200km_kotilingeshwara", label: "10 Hours KOTILINGESHWARA+ 200KM PACKAGE KM" },
+        { value: "12hr_300km_koti_isha", label: "12 Hours KOTILINGESHWARA + ISHA FOUNDATION 300KM PACKAGE KM" },
+        { value: "24hr_mysore", label: "24 Hours DAY TRIP MYSORE PACKAGE KM" }
     ];
 
     return (
@@ -38,7 +38,7 @@ const ToursForm = ({
                 >
                     <option value="">Select Package</option>
                     {packages.map((pkg, index) => (
-                        <option key={index} value={pkg}>{pkg}</option>
+                        <option key={index} value={pkg.value}>{pkg.label}</option>
                     ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

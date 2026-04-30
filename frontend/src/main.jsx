@@ -6,14 +6,18 @@ import { ShopProvider } from './context/ShopContext'
 import './index.css'
 import App from './App.jsx'
 
+import { CustomerAuthProvider } from './context/CustomerAuthContext'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <ShopProvider>
-          <App />
-        </ShopProvider>
-      </AuthProvider>
+      <CustomerAuthProvider>
+        <AuthProvider>
+          <ShopProvider>
+            <App />
+          </ShopProvider>
+        </AuthProvider>
+      </CustomerAuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../../lib/api';
 
 const PageLayout = ({ title, children }) => {
     const navigate = useNavigate();
@@ -43,30 +44,53 @@ export const Privacy = () => (
     </PageLayout>
 );
 
-export const Support = () => (
-    <PageLayout title="Help & Support">
-        <div className="space-y-6">
-            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                <h3 className="font-bold text-obsidian mb-1">Call Us</h3>
-                <p className="text-primary font-black">+91 80 4112 4112</p>
-            </div>
-            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                <h3 className="font-bold text-obsidian mb-1">Email Us</h3>
-                <p className="text-primary font-black">support@nammataxi.com</p>
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-                <h3 className="font-bold text-obsidian mb-4">Frequently Asked Questions</h3>
-                <div className="space-y-4">
-                    <div>
-                        <h4 className="font-bold text-xs mb-1">How do I book a cab?</h4>
-                        <p className="opacity-70">Simply select your service on home screen, enter details and confirm.</p>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-xs mb-1">Can I book for outstation?</h4>
-                        <p className="opacity-70">Yes, we have dedicated outstation packages starting at ₹12/km.</p>
+export const Support = () => {
+    const [settings, setSettings] = useState(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await api.get('/settings');
+                if (res && res.data) {
+                    setSettings(res.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch support settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const contactInfo = settings?.nammaTaxi || {
+        phone1: '+91 80 4112 4112',
+        email: 'support@nammataxi.com'
+    };
+
+    return (
+        <PageLayout title="Help & Support">
+            <div className="space-y-6">
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                    <h3 className="font-bold text-obsidian mb-1 text-left">Call Us</h3>
+                    <p className="text-primary font-black text-left">{contactInfo.phone1}</p>
+                </div>
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                    <h3 className="font-bold text-obsidian mb-1 text-left">Email Us</h3>
+                    <p className="text-primary font-black text-left">{contactInfo.email}</p>
+                </div>
+                <div className="pt-4 border-t border-gray-100 text-left">
+                    <h3 className="font-bold text-obsidian mb-4">Frequently Asked Questions</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="font-bold text-xs mb-1">How do I book a cab?</h4>
+                            <p className="opacity-70 text-left">Simply select your service on home screen, enter details and confirm.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-xs mb-1">Can I book for outstation?</h4>
+                            <p className="opacity-70 text-left">Yes, we have dedicated outstation packages starting at ₹12/km.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </PageLayout>
-);
+        </PageLayout>
+    );
+};
