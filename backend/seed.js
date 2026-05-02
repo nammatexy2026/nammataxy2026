@@ -6,6 +6,7 @@ import Staff from './src/modules/staff/model/staff.model.js';
 import Driver from './src/modules/drivers/model/driver.model.js';
 import VehicleCategory from './src/modules/vehicle-categories/model/vehicleCategory.model.js';
 import Pricing from './src/modules/pricing/model/pricing.model.js';
+import ToursPackage from './src/modules/taxi/model/toursPackage.model.js';
 
 async function seed() {
   try {
@@ -16,7 +17,8 @@ async function seed() {
     console.log('Clearing existing staff/drivers...');
     const staffDeleted = await Staff.deleteMany({ role: 'admin' });
     const driversDeleted = await Driver.deleteMany({});
-    console.log(`Deleted ${staffDeleted.deletedCount} admins and ${driversDeleted.deletedCount} drivers`);
+    const toursDeleted = await ToursPackage.deleteMany({});
+    console.log(`Deleted ${staffDeleted.deletedCount} admins, ${driversDeleted.deletedCount} drivers, and ${toursDeleted.deletedCount} tours`);
 
     // 2. Admin User
     await Staff.create({
@@ -133,6 +135,27 @@ async function seed() {
         driverAllowance: mode === 'roundtrip' ? 400 : 0,
       });
     }
+    
+    // 3.5 Tours Packages
+    const tourPackageData = [
+      { slug: "1day_450km_arunachalam", name: "1 DAY TRIP ARUNACHALAM/TIRUVANNAMALAI PACKAGE 450 KM", basePrice: 4500, maxKm: 450, maxHours: 24, description: "Full day spiritual trip to Arunachalam." },
+      { slug: "1day_300km_hogenakkal", name: "1 DAY TRIP HOGENAKKAL FALLS PACKAGE 300 KM", basePrice: 3500, maxKm: 300, maxHours: 18, description: "Enjoy the waterfalls at Hogenakkal." },
+      { slug: "1day_300km_lepakshi", name: "1 DAY TRIP LEPAKSHI & ISHA/ADIYOGI PACKAGE 300 KM", basePrice: 3200, maxKm: 300, maxHours: 15, description: "Historical Lepakshi and serene Isha Foundation." },
+      { slug: "3day_mysore_coorg", name: "3 DAY TRIP MYSORE & COORG/MADIKERI PACKAGE KM", basePrice: 12000, maxKm: 800, maxHours: 72, description: "Comprehensive tour of Mysore and Coorg." },
+      { slug: "4hr_40km", name: "4 Hours 40 KM", basePrice: 1200, maxKm: 40, maxHours: 4, description: "Quick city run or local errands." },
+      { slug: "8hr_160km_isha", name: "8 Hours Isha Foundation Chikkaballapura 160 km", basePrice: 2800, maxKm: 160, maxHours: 8, description: "Visit Isha Foundation at Chikkaballapura." },
+      { slug: "8hr_160km_nandi", name: "8 Hours Nandi Hills Roundtrip 160 km", basePrice: 2500, maxKm: 160, maxHours: 8, description: "Scenic sunrise at Nandi Hills." },
+      { slug: "8hr_80km", name: "8 Hours 80 KM", basePrice: 1800, maxKm: 80, maxHours: 8, description: "Half-day city tour." },
+      { slug: "10hr_200km_nandi_isha", name: "10 Hours Nandi Hills + Isha Foundation 200 KM", basePrice: 3800, maxKm: 200, maxHours: 10, description: "Best of both: Nandi Hills and Isha." },
+      { slug: "10hr_200km_kotilingeshwara", name: "10 Hours KOTILINGESHWARA 200KM PACKAGE", basePrice: 3500, maxKm: 200, maxHours: 10, description: "Visit the world famous Kotilingeshwara temple." },
+      { slug: "12hr_300km_koti_isha", name: "12 Hours KOTILINGESHWARA + ISHA FOUNDATION 300KM", basePrice: 4800, maxKm: 300, maxHours: 12, description: "Long spiritual day tour." },
+      { slug: "24hr_mysore", name: "24 Hours DAY TRIP MYSORE PACKAGE", basePrice: 5500, maxKm: 400, maxHours: 24, description: "One day trip to the Palace city." }
+    ];
+
+    for (const pkg of tourPackageData) {
+      await ToursPackage.create(pkg);
+    }
+    console.log(`✅ Seeded ${tourPackageData.length} tours packages`);
 
     // Tours Pricing (using the stable values)
     const tourPackages = [
