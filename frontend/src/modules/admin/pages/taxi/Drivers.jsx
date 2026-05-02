@@ -293,7 +293,7 @@ const Drivers = () => {
                                     <input type="email" placeholder="Email (Optional)" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:border-black text-sm" 
                                         value={showEditModal ? selectedDriver.email : newDriver.email} 
                                         onChange={e => showEditModal ? setSelectedDriver({...selectedDriver, email: e.target.value}) : setNewDriver({...newDriver, email: e.target.value})} />
-                                    <input type="password" placeholder="Login PIN / Password" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:border-black text-sm" 
+                                    <input required={!showEditModal} type="password" placeholder="Login PIN / Password" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:border-black text-sm" 
                                         value={showEditModal ? selectedDriver.passwordHash : newDriver.passwordHash} 
                                         onChange={e => showEditModal ? setSelectedDriver({...selectedDriver, passwordHash: e.target.value}) : setNewDriver({...newDriver, passwordHash: e.target.value})} />
                                 </div>
