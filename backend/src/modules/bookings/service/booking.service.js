@@ -262,6 +262,11 @@ export async function updateBookingStatus(id, newStatus, updatedBy = null) {
 
   const currentStatus = booking.status;
   
+  // 0. If already in that status, just return
+  if (currentStatus === newStatus) {
+    return booking;
+  }
+
   // 1. Validate transition
   if (!VALID_TRANSITIONS[currentStatus]?.includes(newStatus)) {
     throw AppError.badRequest(`Invalid status transition from ${currentStatus} to ${newStatus}`);
