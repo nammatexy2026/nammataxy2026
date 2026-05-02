@@ -16,8 +16,8 @@ const AllBookings = ({ title: propTitle = "All Bookings", filterStatus: propFilt
     const [searchTerm, setSearchTerm] = useState('');
     const [range, setRange] = useState('all');
     const [auditBookingId, setAuditBookingId] = useState(null);
-    const [showCreateCase, setShowCreateCase] = useState(false);
     const [selectedBookingForCase, setSelectedBookingForCase] = useState(null);
+    const [activeDropdown, setActiveDropdown] = useState(null);
 
     // Determine section from path segments
     const getSectionConfig = () => {
@@ -354,25 +354,47 @@ const AllBookings = ({ title: propTitle = "All Bookings", filterStatus: propFilt
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <div className="relative group/menu">
-                                                <button className="p-2 text-gray-400 hover:text-black rounded-lg transition-all flex items-center gap-1 bg-gray-50 border border-transparent hover:border-gray-200">
+                                            <div className="relative">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveDropdown(activeDropdown === booking._id ? null : booking._id);
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-all flex items-center gap-1 border ${
+                                                        activeDropdown === booking._id 
+                                                            ? 'bg-black text-white border-black' 
+                                                            : 'bg-gray-50 text-gray-400 hover:text-black border-transparent hover:border-gray-200'
+                                                    }`}
+                                                >
                                                     <span className="text-[9px] font-black uppercase">Update</span>
-                                                    <ChevronDown size={12} />
+                                                    <ChevronDown size={12} className={`transition-transform duration-200 ${activeDropdown === booking._id ? 'rotate-180' : ''}`} />
                                                 </button>
-                                                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-10 hidden group-hover/menu:block text-left">
-                                                    {(STATUS_FLOW[booking.status] || []).map(st => (
-                                                        <button 
-                                                            key={st}
-                                                            onClick={() => updateStatus(booking._id, st)}
-                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 text-gray-600 hover:text-black transition-colors"
-                                                        >
-                                                            {st}
-                                                        </button>
-                                                    ))}
-                                                    {STATUS_FLOW[booking.status]?.length === 0 && (
-                                                        <div className="px-4 py-2 text-[9px] font-bold text-gray-400 uppercase italic">Final State</div>
-                                                    )}
-                                                </div>
+                                                
+                                                {activeDropdown === booking._id && (
+                                                    <>
+                                                        <div 
+                                                            className="fixed inset-0 z-10" 
+                                                            onClick={() => setActiveDropdown(null)}
+                                                        />
+                                                        <div className="absolute right-0 mt-2 w-40 bg-white border border-black/5 shadow-2xl rounded-2xl overflow-hidden z-20 text-left animate-in slide-in-from-top-2 duration-200">
+                                                            {(STATUS_FLOW[booking.status] || []).map(st => (
+                                                                <button 
+                                                                    key={st}
+                                                                    onClick={() => {
+                                                                        updateStatus(booking._id, st);
+                                                                        setActiveDropdown(null);
+                                                                    }}
+                                                                    className="w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 text-gray-600 hover:text-black transition-colors border-b border-black/5 last:border-0"
+                                                                >
+                                                                    {st}
+                                                                </button>
+                                                            ))}
+                                                            {STATUS_FLOW[booking.status]?.length === 0 && (
+                                                                <div className="px-5 py-3 text-[9px] font-bold text-gray-400 uppercase italic">Final State</div>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                             <button 
                                                 onClick={() => {
