@@ -97,7 +97,11 @@ const bookingSchema = new mongoose.Schema(
         updatedBy: { type: mongoose.Schema.Types.ObjectId, refPath: 'statusHistory.updatedByModel' },
         updatedByModel: { type: String, enum: ['Staff', 'Customer', 'Driver'] }
       }
-    ]
+    ],
+    startOTP: {
+      type: String,
+      default: () => Math.floor(1000 + Math.random() * 9000).toString(),
+    }
   },
   { timestamps: true }
 );
